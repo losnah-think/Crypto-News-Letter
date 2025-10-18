@@ -13,27 +13,54 @@ export async function GET(request: NextRequest) {
       .from('cache')
       .select('*', { count: 'exact', head: true });
 
-    // 유효한 캐시 (만료되지 않은 것)
+    // 유효한 캐시 (만료되지 않은 것) - 전체 데이터 포함
     const { data: validCache, count: validCount } = await supabaseAdmin
       .from('cache')
-      .select('key, expires_at, created_at', { count: 'exact' })
+      .select('*', { count: 'exact' })
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(100);
 
-    // 만료된 캐시
-    const { count: expiredCount } = await supabaseAdmin
+    // 만료된 캐시 - 전체 데이터 포함
+    const { data: expiredCache, count: expiredCount } = await supabaseAdmin
       .from('cache')
-      .select('*', { count: 'exact', head: true })
-      .lt('expires_at', new Date().toISOString());
+      .select('*', { count: 'exact' })
+      .lt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(50);
 
-    // 암호화폐 캐시만
+    // 전체 캐시 이력 (최근 100개)
+    const { data: allCache } = await supabaseAdmin
+      .from('cache')
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .limit(100);
+
+    // 암호화폐 캐시만 - 전체 데이터 포함
     const { data: cryptoCache, count: cryptoCount } = await supabaseAdmin
       .from('cache')
-      .select('key, expires_at, created_at, updated_at', { count: 'exact' })
+      .select('*', { count: 'exact' })
       .like('key', 'crypto:%')
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false });
+
+    // 캐시 통계 (코인별 히트/미스 분석용)
+    const cacheStats = allCache?.reduce((acc: any, item: any) => {
+      const symbol = item.key.split(':')[1];
+      if (!acc[symbol]) {
+        acc[symbol] = {
+          symbol,
+          count: 0,
+          lastAccess: item.updated_at,
+          isExpired: new Date(item.expires_at) < new Date(),
+        };
+      }
+      acc[symbol].count++;
+      if (new Date(item.updated_at) > new Date(acc[symbol].lastAccess)) {
+        acc[symbol].lastAccess = item.updated_at;
+      }
+      return acc;
+    }, {});
 
     return NextResponse.json({
       status: 'ok',
@@ -46,18 +73,48 @@ export async function GET(request: NextRequest) {
       },
       validCache: validCache?.map(item => ({
         key: item.key,
-        expiresAt: item.expires_at,
-        createdAt: item.created_at,
-        remainingTime: `${Math.floor((new Date(item.expires_at).getTime() - Date.now()) / 1000 / 60)}분`,
-      })) || [],
-      cryptoCache: cryptoCache?.map(item => ({
-        key: item.key,
         symbol: item.key.split(':')[1],
+        type: item.key.split(':')[2] || 'full',
+        value: item.value,
         expiresAt: item.expires_at,
         createdAt: item.created_at,
         updatedAt: item.updated_at,
         remainingTime: `${Math.floor((new Date(item.expires_at).getTime() - Date.now()) / 1000 / 60)}분`,
+        remainingSeconds: Math.floor((new Date(item.expires_at).getTime() - Date.now()) / 1000),
+        dataSize: JSON.stringify(item.value).length,
       })) || [],
+      expiredCache: expiredCache?.map(item => ({
+        key: item.key,
+        symbol: item.key.split(':')[1],
+        type: item.key.split(':')[2] || 'full',
+        expiresAt: item.expires_at,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        expiredSince: `${Math.floor((Date.now() - new Date(item.expires_at).getTime()) / 1000 / 60)}분 전`,
+        dataSize: JSON.stringify(item.value).length,
+      })) || [],
+      cryptoCache: cryptoCache?.map(item => ({
+        key: item.key,
+        symbol: item.key.split(':')[1],
+        type: item.key.split(':')[2] || 'full',
+        value: item.value,
+        expiresAt: item.expires_at,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        remainingTime: `${Math.floor((new Date(item.expires_at).getTime() - Date.now()) / 1000 / 60)}분`,
+        dataSize: JSON.stringify(item.value).length,
+      })) || [],
+      cacheHistory: allCache?.map(item => ({
+        key: item.key,
+        symbol: item.key.split(':')[1],
+        type: item.key.split(':')[2] || 'full',
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        expiresAt: item.expires_at,
+        isExpired: new Date(item.expires_at) < new Date(),
+        dataSize: JSON.stringify(item.value).length,
+      })) || [],
+      statistics: Object.values(cacheStats || {}),
     });
   } catch (error: any) {
     console.error('캐시 상태 조회 실패:', error);

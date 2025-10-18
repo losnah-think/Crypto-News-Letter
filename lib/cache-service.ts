@@ -40,24 +40,32 @@ export class CacheService {
   /**
    * 캐시에 데이터 저장
    */
-  async set(key: string, value: any, ttlSeconds: number = 3600): Promise<void> {
+  async set(key: string, value: any, ttlSeconds: number = 3600): Promise<boolean> {
     try {
       const expiresAt = new Date();
       expiresAt.setSeconds(expiresAt.getSeconds() + ttlSeconds);
 
-      const { error } = await supabaseAdmin
+      const { error, data } = await supabaseAdmin
         .from('cache')
         .upsert({
           key,
           value,
           expires_at: expiresAt.toISOString(),
-        });
+        }, {
+          onConflict: 'key'
+        })
+        .select();
 
       if (error) {
-        console.error('Cache set error:', error);
+        console.error(`❌ 캐시 저장 실패 (${key}):`, error.message, error.details);
+        return false;
       }
-    } catch (error) {
-      console.error('Cache set error:', error);
+      
+      console.log(`✅ 캐시 저장 성공 (${key}), 만료: ${expiresAt.toLocaleString('ko-KR')}`);
+      return true;
+    } catch (error: any) {
+      console.error(`❌ 캐시 저장 예외 (${key}):`, error.message);
+      return false;
     }
   }
 
@@ -162,5 +170,33 @@ export class CacheService {
    */
   async invalidateStock(ticker: string) {
     await this.deletePattern(`stock:${ticker}:*`);
+  }
+
+  /**
+   * 암호화폐 전체 분석 캐시 (6시간)
+   */
+  async getCryptoAnalysis(symbol: string) {
+    const key = `crypto:${symbol}:full`;
+    console.log(`🔍 캐시 조회 시도: ${key}`);
+    const result = await this.get(key);
+    if (result) {
+      console.log(`✅ 캐시 히트: ${key}`);
+    } else {
+      console.log(`❌ 캐시 미스: ${key}`);
+    }
+    return result;
+  }
+
+  async setCryptoAnalysis(symbol: string, data: any) {
+    const key = `crypto:${symbol}:full`;
+    console.log(`💾 캐시 저장 시도: ${key}`);
+    return this.set(key, data, 21600); // 6 hours
+  }
+
+  /**
+   * 암호화폐 캐시 무효화
+   */
+  async invalidateCrypto(symbol: string) {
+    await this.deletePattern(`crypto:${symbol}:*`);
   }
 }

@@ -21,7 +21,7 @@ export async function GET(
   try {
     // 캐시 확인
     const cacheService = new CacheService();
-    const cachedData = await cacheService.getFullAnalysis(`crypto:${symbol}`);
+    const cachedData = await cacheService.getCryptoAnalysis(symbol);
 
     if (cachedData) {
       console.log(`✅ 캐시 히트: crypto:${symbol}`);
@@ -50,17 +50,33 @@ export async function GET(
 
     console.log(`🤖 AI 분석 완료: ${recommendation.decision} (${recommendation.confidence}%)`);
 
+    // 4. 장기 전망 분석 (선택적)
+    let longTermOutlook = null;
+    try {
+      longTermOutlook = await aiService.analyzeLongTermOutlook(cryptoData);
+      console.log(`📈 장기 전망 분석 완료`);
+    } catch (error: any) {
+      console.error('장기 전망 분석 실패:', error.message);
+    }
+
     // 결과 조합
     const result = {
       ...cryptoData,
-      recommendation,
+      recommendation: {
+        ...recommendation,
+        longTermOutlook
+      },
       generatedAt: new Date().toISOString(),
       fromCache: false
     };
 
     // 캐시 저장 (6시간)
-    await cacheService.setFullAnalysis(`crypto:${symbol}`, result);
-    console.log(`💾 캐시 저장 완료: crypto:${symbol}`);
+    const cacheSaved = await cacheService.setCryptoAnalysis(symbol, result);
+    if (cacheSaved) {
+      console.log(`💾 캐시 저장 완료: crypto:${symbol}`);
+    } else {
+      console.error(`⚠️ 캐시 저장 실패했지만 결과는 반환: crypto:${symbol}`);
+    }
 
     return NextResponse.json(result);
 

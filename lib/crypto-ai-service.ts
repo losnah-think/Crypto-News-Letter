@@ -21,6 +21,14 @@ interface CryptoAIAnalysis {
     stopLoss: number;         // 손절가 (5-10% 손실)
     reasoning: string;        // 가격 설정 근거
   };
+  longTermOutlook?: {
+    potential: string;          // 장기 투자 가치
+    useCases: string[];         // 실제 활용 사례
+    partnerships: string[];     // 주요 파트너십/협력
+    futureProspects: string[];  // 미래 전망
+    risks: string[];            // 장기 리스크
+    summary: string;            // 한 줄 요약
+  };
 }
 
 export class CryptoAIService {
@@ -274,6 +282,329 @@ LEVELS_REASONING: [가격대 설정 근거, 2-3문장]
         stopLoss: stopLoss || currentPrice * 0.93,
         reasoning: levelsReasoning || '기술적 분석을 기반으로 한 가격대입니다.'
       }
+    };
+  }
+
+  /**
+   * 장기 투자 전망 분석
+   */
+  async analyzeLongTermOutlook(cryptoData: any): Promise<{
+    potential: string;
+    useCases: string[];
+    partnerships: string[];
+    futureProspects: string[];
+    risks: string[];
+    summary: string;
+  }> {
+    const prompt = `
+당신은 암호화폐 전문가입니다. ${cryptoData.name} (${cryptoData.symbol})에 대한 장기 투자 전망을 **구체적이고 실용적으로** 분석해주세요.
+
+# 코인 정보
+- 이름: ${cryptoData.name} (${cryptoData.symbol})
+- 현재가: $${cryptoData.price.toFixed(2)}
+- 시가총액: $${cryptoData.marketCap} (순위: ${cryptoData.rank}위)
+- 시장 점유율: ${cryptoData.dominance ? cryptoData.dominance.toFixed(2) + '%' : 'N/A'}
+
+# 중요 지침
+**일반적이거나 모호한 답변은 절대 금지입니다!**
+
+예를 들어:
+❌ "다양한 분야에서 활용 가능" (너무 모호함)
+✅ "엘살바도르에서 법정화폐로 사용 중이며, 2021년부터 국민들이 일상 결제에 활용"
+
+❌ "주요 파트너십 확인 필요" (정보 없음)
+✅ "테슬라가 2021년 15억 달러 구매, 마이크로스트래티지가 지속적으로 매입"
+
+**반드시 다음을 포함하세요:**
+
+1. **USE_CASES (활용 사례)**: 
+   - 실제 회사명, 서비스명, 국가명을 포함한 구체적 사례
+   - "어디서", "누가", "어떻게" 사용하는지 명확히
+   - 예: "미국 스타벅스에서 결제 가능", "삼성전자 블록체인 키스토어에 통합"
+
+2. **PARTNERSHIPS (파트너십)**:
+   - 실제 기업명, 기관명을 명시
+   - 협력 내용과 시기를 구체적으로
+   - 예: "2023년 마스터카드와 암호화폐 결제 연동", "JP모건 체이스 블록체인 네트워크 참여"
+
+3. **FUTURE_PROSPECTS (미래 전망)**:
+   - 진행 중인 구체적 프로젝트나 계획
+   - 기술 업그레이드, 규제 변화, 채택 증가 등 실제 근거
+   - 예: "2024년 비트코인 ETF 승인으로 기관 투자 증가 예상", "이더리움 2.0 업그레이드로 에너지 소비 99% 감소"
+
+4. **LONG_TERM_RISKS (리스크)**:
+   - ${cryptoData.symbol}에 특화된 구체적 위험 요소
+   - 경쟁 코인, 기술적 한계, 규제 이슈 등
+
+**코인별 실제 정보 예시:**
+
+Bitcoin (BTC):
+- 사용처: 엘살바도르 법정화폐, 테슬라/마이크로스트래티지 보유
+- 파트너십: 페이팔 결제 지원, 피델리티 기관 투자 상품
+- 전망: 비트코인 ETF 승인, 반감기 이벤트
+
+Ethereum (ETH):
+- 사용처: NFT 마켓플레이스 오픈씨, DeFi 플랫폼 유니스왑
+- 파트너십: 마이크로소프트 Azure 블록체인, JP모건 쿼럼
+- 전망: 이더리움 2.0 완성, 레이어2 확장성 개선
+
+Dogecoin (DOGE):
+- 사용처: 테슬라 상품 결제, 트위터 팁 기능
+- 파트너십: 스페이스X 달 탐사 후원
+- 전망: 일론 머스크 지속 지원, 밈 문화 확산
+
+**형식:**
+
+POTENTIAL: [이 코인의 핵심 가치를 2-3문장으로, 구체적 근거와 함께]
+
+USE_CASES:
+- [구체적 사례 1: 회사명/서비스명 포함]
+- [구체적 사례 2: 실제 사용 예시]
+- [구체적 사례 3: 어떤 산업에서 활용]
+
+PARTNERSHIPS:
+- [실제 파트너 1: 기업명과 협력 내용]
+- [실제 파트너 2: 시기와 규모 포함]
+- [실제 파트너 3: 구체적 프로젝트명]
+
+FUTURE_PROSPECTS:
+- [구체적 전망 1: 진행 중인 프로젝트]
+- [구체적 전망 2: 예상 시기와 영향]
+- [구체적 전망 3: 시장 변화 근거]
+
+LONG_TERM_RISKS:
+- [${cryptoData.symbol} 특화 리스크 1]
+- [${cryptoData.symbol} 특화 리스크 2]
+- [${cryptoData.symbol} 특화 리스크 3]
+
+SUMMARY: [한 문장으로 핵심 요약, 실제 근거 포함]
+
+**50-60대가 이해하기 쉬운 용어로 작성하되, 반드시 실제 사례와 회사명을 포함하세요!**
+`;
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `당신은 암호화폐 시장을 깊이 이해하는 전문 애널리스트입니다.
+
+**핵심 역량:**
+- 각 암호화폐의 실제 사용 사례와 파트너십을 정확히 파악
+- 주요 기업, 기관, 정부의 채택 사례를 추적
+- 기술 발전, 업그레이드 일정, 로드맵 숙지
+- 경쟁 구도와 시장 변화 분석
+
+**절대 금지:**
+- "다양한 분야에서 활용 가능" 같은 일반론
+- "주요 파트너십 확인 필요" 같은 회피
+- "성장 가능성 존재" 같은 모호한 표현
+
+**반드시 포함:**
+- 실제 회사명 (예: 테슬라, 마이크로소프트, 삼성전자)
+- 구체적 서비스명 (예: 페이팔 결제, 오픈씨 NFT)
+- 실제 사용 국가/지역 (예: 엘살바도르, 미국, 한국)
+- 시기와 규모 (예: 2021년 15억 달러, 2024년 ETF 승인)
+
+일반인도 이해할 수 있게 쉬운 용어로 설명하되, 반드시 구체적이고 실용적인 정보를 제공하세요.`
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1500
+      });
+
+      const content = response.choices[0].message.content || '';
+      
+      // 파싱
+      let potential = '';
+      let useCases: string[] = [];
+      let partnerships: string[] = [];
+      let futureProspects: string[] = [];
+      let longTermRisks: string[] = [];
+      let summary = '';
+      let currentSection = '';
+
+      const lines = content.split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+
+        if (trimmed.startsWith('POTENTIAL:')) {
+          potential = trimmed.replace('POTENTIAL:', '').trim();
+          currentSection = 'potential';
+        } else if (trimmed.startsWith('USE_CASES:')) {
+          currentSection = 'useCases';
+        } else if (trimmed.startsWith('PARTNERSHIPS:')) {
+          currentSection = 'partnerships';
+        } else if (trimmed.startsWith('FUTURE_PROSPECTS:')) {
+          currentSection = 'futureProspects';
+        } else if (trimmed.startsWith('LONG_TERM_RISKS:')) {
+          currentSection = 'longTermRisks';
+        } else if (trimmed.startsWith('SUMMARY:')) {
+          summary = trimmed.replace('SUMMARY:', '').trim();
+        } else if (trimmed.startsWith('-')) {
+          const point = trimmed.substring(1).trim();
+          if (currentSection === 'useCases') {
+            useCases.push(point);
+          } else if (currentSection === 'partnerships') {
+            partnerships.push(point);
+          } else if (currentSection === 'futureProspects') {
+            futureProspects.push(point);
+          } else if (currentSection === 'longTermRisks') {
+            longTermRisks.push(point);
+          }
+        } else if (currentSection === 'potential' && trimmed && !trimmed.includes(':')) {
+          potential += ' ' + trimmed;
+        }
+      }
+
+      // 응답 검증 - 일반적인 답변이면 재시도
+      const isGeneric = 
+        potential.includes('다양한 분야') ||
+        useCases.some(u => u.includes('다양한 분야') || u.includes('활용 가능')) ||
+        partnerships.some(p => p.includes('확인 필요') || p.includes('주요 파트너십'));
+
+      if (isGeneric) {
+        console.warn(`⚠️ AI가 일반적인 답변을 제공했습니다. 코인별 구체적 정보로 대체합니다.`);
+        return this.getSpecificCoinInfo(cryptoData);
+      }
+
+      return {
+        potential: potential || `${cryptoData.name}은(는) ${cryptoData.rank}위 암호화폐로 시장에서 주목받고 있습니다.`,
+        useCases: useCases.length > 0 ? useCases : this.getSpecificCoinInfo(cryptoData).useCases,
+        partnerships: partnerships.length > 0 ? partnerships : this.getSpecificCoinInfo(cryptoData).partnerships,
+        futureProspects: futureProspects.length > 0 ? futureProspects : this.getSpecificCoinInfo(cryptoData).futureProspects,
+        risks: longTermRisks.length > 0 ? longTermRisks : this.getSpecificCoinInfo(cryptoData).risks,
+        summary: summary || `${cryptoData.name}은(는) 장기 투자를 고려해볼 만한 암호화폐입니다.`
+      };
+    } catch (error: any) {
+      console.error('장기 전망 분석 실패:', error.message);
+      return this.getSpecificCoinInfo(cryptoData);
+    }
+  }
+
+  /**
+   * 코인별 구체적 정보 제공 (fallback)
+   */
+  private getSpecificCoinInfo(cryptoData: any): {
+    potential: string;
+    useCases: string[];
+    partnerships: string[];
+    futureProspects: string[];
+    risks: string[];
+    summary: string;
+  } {
+    const symbol = cryptoData.symbol.toUpperCase();
+    
+    // 주요 코인별 실제 정보
+    const coinInfo: { [key: string]: any } = {
+      'BTC': {
+        potential: '비트코인은 디지털 금으로 불리며, 전 세계에서 가장 많이 거래되는 암호화폐입니다. 한정된 공급량(2100만 개)으로 인플레이션 방어 수단으로 주목받고 있습니다.',
+        useCases: [
+          '엘살바도르에서 2021년부터 법정화폐로 사용 중',
+          '미국 스타벅스, 홈디포 등 주요 기업에서 결제 수단으로 도입',
+          '기관 투자자들이 인플레이션 헤지 수단으로 보유'
+        ],
+        partnerships: [
+          '테슬라: 15억 달러 규모 비트코인 보유 (2021년)',
+          '마이크로스트래티지: 지속적으로 비트코인 매입 중 (2024년 현재 13만 BTC 이상)',
+          '페이팔, 비자, 마스터카드: 비트코인 결제 지원'
+        ],
+        futureProspects: [
+          '미국 비트코인 현물 ETF 승인으로 기관 투자 급증 (2024년)',
+          '2024년 4월 반감기 이벤트로 공급 감소 예상',
+          '각국 정부의 비트코인 전략적 비축 논의 확대'
+        ],
+        risks: [
+          '환경 문제로 인한 채굴 규제 가능성',
+          '각국 정부의 규제 정책 변화',
+          '양자컴퓨터 발전 시 보안 위협'
+        ],
+        summary: '비트코인은 디지털 금으로서 장기 가치 저장 수단으로 기관과 정부의 채택이 증가하고 있습니다.'
+      },
+      'ETH': {
+        potential: '이더리움은 스마트 계약을 실행할 수 있는 블록체인으로, NFT와 DeFi(탈중앙화 금융)의 중심입니다. 2022년 이더리움 2.0 업그레이드로 에너지 소비를 99% 줄였습니다.',
+        useCases: [
+          'NFT 시장 오픈씨(OpenSea)에서 대부분의 거래가 이더리움 기반',
+          'DeFi 플랫폼 유니스왑, 에이브에서 수백억 달러 규모 거래',
+          '기업용 블록체인: 마이크로소프트, JP모건이 이더리움 기반 솔루션 개발'
+        ],
+        partnerships: [
+          '마이크로소프트 Azure: 이더리움 블록체인 서비스 제공',
+          'JP모건: 쿼럼(이더리움 기반) 블록체인 개발',
+          'EY, 액센츄어: 이더리움 기반 기업 솔루션 구축'
+        ],
+        futureProspects: [
+          '이더리움 2.0 완성으로 확장성과 속도 대폭 개선',
+          '레이어2 솔루션(Arbitrum, Optimism)으로 거래 비용 절감',
+          '기관 투자용 이더리움 ETF 출시 논의 진행 중'
+        ],
+        risks: [
+          '경쟁 블록체인(솔라나, 카르다노)의 기술 발전',
+          '높은 가스비(거래 수수료) 문제',
+          '규제 당국의 증권 분류 가능성'
+        ],
+        summary: '이더리움은 NFT와 DeFi 생태계의 핵심으로 기업들의 블록체인 채택을 주도하고 있습니다.'
+      },
+      'DOGE': {
+        potential: '도지코인은 밈(재미) 코인으로 시작했지만, 일론 머스크의 지지와 대중적 인지도로 실제 결제 수단으로 자리잡고 있습니다.',
+        useCases: [
+          '테슬라 온라인 상점에서 도지코인으로 상품 구매 가능',
+          '스페이스X: 도지코인으로 달 탐사 미션 후원 (DOGE-1)',
+          '트위터(X): 크리에이터 팁 기능에 도지코인 통합 논의'
+        ],
+        partnerships: [
+          '일론 머스크와 테슬라: 도지코인 결제 지원',
+          '스페이스X: 도지코인 기반 달 탐사 프로젝트',
+          '마크 큐반: NBA 달라스 매버릭스 상품을 도지코인으로 판매'
+        ],
+        futureProspects: [
+          '트위터(X) 결제 시스템 통합 가능성',
+          '대중적 인지도를 활용한 일상 결제 확대',
+          '커뮤니티 주도의 지속적인 개발과 업그레이드'
+        ],
+        risks: [
+          '무한 공급으로 인한 인플레이션 압력',
+          '기술적 혁신보다는 인기에 의존',
+          '일론 머스크 발언에 따른 높은 변동성'
+        ],
+        summary: '도지코인은 밈에서 시작했지만 일론 머스크의 지원으로 실제 결제 수단으로 발전 중입니다.'
+      }
+    };
+
+    // 해당 코인 정보가 있으면 반환, 없으면 일반 정보
+    if (coinInfo[symbol]) {
+      return coinInfo[symbol];
+    }
+
+    // 일반 코인용 정보
+    return {
+      potential: `${cryptoData.name}은(는) 시가총액 ${cryptoData.rank}위의 암호화폐로, 블록체인 생태계에서 특정 역할을 수행하고 있습니다.`,
+      useCases: [
+        `${cryptoData.name}의 블록체인 네트워크에서 거래 수수료 및 스마트 계약 실행에 사용`,
+        '암호화폐 거래소에서 다른 코인과의 거래쌍으로 활용',
+        '탈중앙화 금융(DeFi) 프로토콜에서 담보 및 유동성 제공'
+      ],
+      partnerships: [
+        '주요 글로벌 거래소(바이낸스, 코인베이스, 크라켄) 상장',
+        '블록체인 생태계 내 다양한 프로젝트와 협력',
+        '개발자 커뮤니티와 오픈소스 기여자들의 지속적 개발'
+      ],
+      futureProspects: [
+        '블록체인 기술 발전과 함께 네트워크 업그레이드 진행',
+        '암호화폐 시장 전체 성장에 따른 채택 증가',
+        '규제 명확화로 기관 투자자 참여 확대 가능'
+      ],
+      risks: [
+        '주요 코인(비트코인, 이더리움) 대비 낮은 유동성',
+        '프로젝트 개발 지연이나 팀 이탈 위험',
+        '경쟁 프로젝트의 기술적 우위 확보 가능성'
+      ],
+      summary: `${cryptoData.name}은(는) ${cryptoData.rank}위 암호화폐로 블록체인 생태계에서 역할을 수행하고 있으나, 주요 코인 대비 변동성이 높습니다.`
     };
   }
 

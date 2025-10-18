@@ -37,7 +37,23 @@ OPENAI_API_KEY=your_key
 NEXT_PUBLIC_SUPABASE_URL=your_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
 SUPABASE_SERVICE_ROLE_KEY=your_key
+CRON_SECRET=your_secret  # Vercel Cron Jobs용
 ```
+
+## 🗄️ 데이터베이스 설정
+
+Supabase 대시보드의 SQL Editor에서 다음 파일을 실행하세요:
+
+```bash
+supabase-cache-setup.sql
+```
+
+이 스크립트는 다음을 생성합니다:
+- `cache` 테이블 (암호화폐 분석 결과 캐시)
+- 자동 만료 처리 인덱스
+- 타임스탬프 자동 업데이트 트리거
+
+캐시는 6시간 동안 유지되며, API 호출을 최소화하여 빠른 응답을 제공합니다.
 
 ## 📝 사용법
 

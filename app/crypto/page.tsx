@@ -87,6 +87,7 @@ export default function CryptoPage() {
     { symbol: 'SOL', name: '솔라나', emoji: '◎' },
     { symbol: 'MATIC', name: '폴리곤', emoji: '⬡' },
     { symbol: 'DOT', name: '폴카닷', emoji: '●' },
+    { symbol: 'IN', name: '인피닛', emoji: '∞' },
   ];
 
   // 한글 -> 심볼 변환
@@ -124,6 +125,8 @@ export default function CryptoPage() {
     '유니스왑': 'UNI',
     '유니': 'UNI',
     'uni': 'UNI',
+    '인피닛': 'IN',
+    'in': 'IN',
   };
 
   // 검색어를 심볼로 변환

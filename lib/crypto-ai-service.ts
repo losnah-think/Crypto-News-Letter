@@ -54,25 +54,51 @@ export class CryptoAIService {
         messages: [
           {
             role: 'system',
-            content: `당신은 암호화폐 전문 기술적 분석가(Technical Analyst)입니다.
+            content: `당신은 암호화폐 전문 기술적 분석가입니다.
 
-**전문 분야**:
-- 차트 패턴 분석 (지지선, 저항선, 추세선)
-- 기술적 지표 해석 (RSI, 이동평균, 거래량)
-- 가격 목표 산정 (피보나치, 지지/저항 레벨)
+**핵심 분석 틀 (GeeksforGeeks 15가지 기법 기반):**
 
-**분석 원칙**:
-1. 제공된 기술적 지표(RSI, 추세, 지지선, 저항선)를 **반드시 활용**하여 분석
-2. 24시간 고가/저가, ATH 등 역사적 가격 데이터 고려
-3. 투자 가격대는 단순 퍼센트 계산이 아닌 **기술적 레벨**을 기준으로 설정
-4. 저항선은 매도 압력이 강한 구간, 지지선은 매수 세력이 강한 구간임을 고려
-5. RSI가 70 이상이면 과매수(조정 가능성), 30 이하면 과매도(반등 가능성)
+1. **Market Analysis (시장 분석)**
+   - 현재가, 시가총액, 순위 기반 시장 위치 파악
+   - 거래량 추세 분석 (거래량 증감 = 관심도 변화)
+   - 24시간/7일/30일 변동률로 추세 파악
 
-**답변 스타일**:
-- 한국어로 명확하고 구체적으로 설명
-- 투자 권유가 아닌 기술적 분석 의견
-- 암호화폐 변동성에 대한 리스크 명시
-- 한국 투자자 관점 반영`
+2. **Technical Analysis (기술 분석)**
+   - RSI 해석: >70 과매수, <30 과매도, 30-70 중립
+   - 지지선/저항선: 실제 거래량이 모이는 가격대
+   - 이동평균: 단기(5일) vs 중기(20일) vs 장기(200일)
+   - 거래량-가격 상관관계: 상승장 거래량 증가 = 강세 신호
+
+3. **Price Predictions (가격 예측)**
+   - 저항선 돌파 시 목표가: 저항선 × 1.05~1.10
+   - ATH(역대최고가)는 심리적 레벨로 중요
+   - 피보나치 레벨 활용: 38.2%, 50%, 61.8% 되돌림
+
+4. **Risk Management (리스크 관리)**
+   - 손절/익절 비율: 최소 1:2 (손절폭 대비 익절폭 2배)
+   - 포지션 사이징: 계정의 1-2%만 위험 허용
+   - 지지선 하단이 손절 기준점
+
+5. **Sentiment Analysis (심리 분석)**
+   - RSI + 거래량 = 시장 심리 종합 지표
+   - 과매수/과매도 영역의 거래량 = 반전 신호
+   - 가격 상승 + 거래량 증가 = 강한 강세 신호
+
+**분석 표준:**
+- 기술적 지표를 반드시 명시 (예: "RSI 35로 과매도 진입 신호")
+- 저항선/지지선 수치 포함 (예: "$52,000 저항선 돌파")
+- 리스크/리워드 비율 제시 (예: "손절 1:익절 2.5")
+
+**금지사항:**
+- "좋을 것 같다", "가능성이 있다" 같은 모호한 표현 ❌
+- 기술적 근거 없는 의견 ❌
+- 투자 권유 표현 ❌
+
+**답변 스타일:**
+- 한국어로 명확하고 구체적
+- 기술적 분석 의견만 제시
+- 암호화폐 변동성과 손실 위험 강조
+- 한국 투자자(수수료, 세금) 관점 고려`
           },
           {
             role: 'user',
@@ -92,92 +118,149 @@ export class CryptoAIService {
   }
 
   /**
-   * 프롬프트 생성
+   * 프롬프트 생성 (GeeksforGeeks 15가지 기법 적용)
+   * - Market Analysis (시장 분석)
+   * - Technical Analysis (기술 분석: RSI, 이동평균)
+   * - Price Predictions (가격 예측)
+   * - Risk Management (리스크 관리)
+   * - Sentiment Analysis (심리 분석)
    */
   private buildCryptoPrompt(data: any): string {
+    const rsiStatus = data.technicalIndicators.rsi ? 
+      (data.technicalIndicators.rsi > 70 ? '과매수' : 
+       data.technicalIndicators.rsi < 30 ? '과매도' : '중립') : 'N/A';
+    
+    const volumeTrend = data.volume24h > data.volume7d ? '상승' : '하락';
+    const priceVolumeCorrelation = data.change24h > 0 && volumeTrend === '상승' ? '강세' :
+                                   data.change24h < 0 && volumeTrend === '상승' ? '약세' : '중립';
+    
     return `
-다음 암호화폐에 대한 투자 분석을 해주세요:
+당신은 암호화폐 전문 기술적 분석가입니다. 다음 암호화폐를 **GeeksforGeeks 15가지 프롬프트 기법**을 활용하여 분석하세요.
 
-# 기본 정보
+# 1️⃣ MARKET ANALYSIS (시장 분석)
+
+## 기본 정보
 - 코인: ${data.name} (${data.symbol})
 - 현재가: $${data.price.toFixed(2)} (₩${data.priceKRW.toLocaleString('ko-KR')})
 - 시가총액: $${data.marketCap} (순위: ${data.rank}위)
 - 24시간 거래량: $${data.volume24h}
+- 7일 평균 거래량: $${data.volume7d}
 
-# 가격 변동
-- 24시간: ${data.change24h.toFixed(2)}%
-- 7일: ${data.change7d.toFixed(2)}%
-- 30일: ${data.change30d.toFixed(2)}%
-- 24시간 최고: $${data.high24h.toFixed(2)}
-- 24시간 최저: $${data.low24h.toFixed(2)}
+## 시장 추세 분석
+- 24시간 변동: ${data.change24h.toFixed(2)}% (${data.change24h > 0 ? '⬆️ 상승' : '⬇️ 하락'})
+- 7일 변동: ${data.change7d.toFixed(2)}%
+- 30일 변동: ${data.change30d.toFixed(2)}%
+- 거래량 추세: ${volumeTrend}
+- 가격-거래량 상관관계: ${priceVolumeCorrelation}
 
-# 공급량
-- 유통 공급량: ${data.circulatingSupply}
-- 총 공급량: ${data.totalSupply}
-- 최대 공급량: ${data.maxSupply || '무제한'}
+${data.dominance ? `- 비트코인 도미넌스: ${data.dominance.toFixed(2)}% (시장 지배력)\n` : ''}
 
-# 역사적 데이터
+# 2️⃣ TECHNICAL ANALYSIS (기술 분석: RSI & Moving Averages)
+
+## 핵심 기술적 지표
+- **RSI (Relative Strength Index)**: ${data.technicalIndicators.rsi?.toFixed(1) || 'N/A'} (상태: ${rsiStatus})
+  * RSI > 70 = 과매수 (조정 가능성), RSI < 30 = 과매도 (반등 가능성)
+  
+- **추세 (이동평균 기반)**: ${data.technicalIndicators.trend}
+  
+- **저항선 (Resistance)**: $${data.technicalIndicators.resistance?.toFixed(6) || 'N/A'}
+  * 매도 압력이 강한 구간
+  
+- **지지선 (Support)**: $${data.technicalIndicators.support?.toFixed(6) || 'N/A'}
+  * 매수 세력이 강한 구간
+
+## 24시간 가격 범위
+- 24시간 최고: $${data.high24h.toFixed(2)} (현재가 대비 +${((data.high24h / data.price - 1) * 100).toFixed(1)}%)
+- 24시간 최저: $${data.low24h.toFixed(2)} (현재가 대비 ${((data.low24h / data.price - 1) * 100).toFixed(1)}%)
+- 일중 변동폭: ${(((data.high24h - data.low24h) / data.low24h) * 100).toFixed(2)}%
+
+## 역사적 데이터 분석
 - 역대 최고가: $${data.ath.toFixed(2)} (${data.athDate})
-- ATH 대비: ${data.athChange.toFixed(2)}%
+- ATH 대비 하락: ${data.athChange.toFixed(2)}% (현재 레벨 평가)
+- 공급량: ${data.circulatingSupply} (최대: ${data.maxSupply || '무제한'})
 
-# 기술적 지표
-- RSI: ${data.technicalIndicators.rsi?.toFixed(1) || 'N/A'}
-- 추세: ${data.technicalIndicators.trend}
-- 지지선: $${data.technicalIndicators.support?.toFixed(2) || 'N/A'}
-- 저항선: $${data.technicalIndicators.resistance?.toFixed(2) || 'N/A'}
+# 3️⃣ PRICE PREDICTION & TARGET ANALYSIS (가격 예측)
 
-${data.dominance ? `# 시장 지배율\n- 비트코인 도미넌스: ${data.dominance.toFixed(2)}%\n` : ''}
+## 단기 목표가 설정 가이드
+**다음 기술적 레벨을 기반으로 현실적 목표가를 산정하세요:**
+- 저항선: $${data.technicalIndicators.resistance?.toFixed(6) || 'N/A'} (1차 돌파 목표)
+- 24시간 최고가: $${data.high24h.toFixed(6)} (최근 저항)
+- 중기 추세선 위쪽 레벨: 저항선 x 1.05~1.10
 
-다음 형식으로 분석해주세요:
+## 중기 목표가 설정 가이드
+- ATH: $${data.ath.toFixed(6)} (장기 목표 레벨)
+- 심리적 저항선: 라운드 숫자 (예: $50,000 근처)
+- 피보나치 레벨: 최근 고점에서 저점까지의 38.2%, 50%, 61.8%
+
+# 4️⃣ RISK MANAGEMENT (리스크 관리)
+
+## 손절/익절 전략
+**현재가: $${data.price.toFixed(6)}**
+
+### 보수적 포지션 (위험도 낮음)
+- 진입가: 현재가 또는 지지선 근처
+- 목표가: 1차 +5~7%, 2차 +12~15%
+- 손절: 지지선 아래 2~3% (${(data.technicalIndicators.support * 0.97)?.toFixed(6) || 'N/A'})
+
+### 공격적 포지션 (위험도 높음)
+- 진입가: 24시간 최저 근처
+- 목표가: 저항선 돌파, 1차 +15~20%, 2차 +30~50%
+- 손절: 24시간 최저 아래 1~2% (${(data.low24h * 0.98)?.toFixed(6)})
+
+**리스크/리워드 비율 권장: 1:2 이상 (손절폭 대비 익절폭이 2배 이상)**
+
+# 5️⃣ SENTIMENT ANALYSIS (심리 분석)
+
+## 시장 심리 지표
+- RSI 상태: ${rsiStatus} → ${rsiStatus === '과매수' ? '매도 압력 우려' : rsiStatus === '과매도' ? '반등 기회' : '중립적 환경'}
+- 거래량 추세: ${volumeTrend} → ${volumeTrend === '상승' ? '관심 증가' : '관심 감소'}
+- 24시간 방향성: ${data.change24h > 0 ? '상승장 심리' : '하락장 심리'}
+- 7일 추세: ${data.change7d > 0 ? '중기 강세' : '중기 약세'}
+
+## 거래량-가격 상관관계 분석
+${priceVolumeCorrelation === '강세' ? '✅ 상승이 높은 거래량으로 뒷받침 (신뢰도 높음)' :
+  priceVolumeCorrelation === '약세' ? '⚠️ 하락에 거래량 증가 (약세 신호)' :
+  '⚪ 중립 상태 (방향 불명확)'}
+
+---
+
+**분석 형식 (필수):**
 
 DECISION: [STRONG_BUY/BUY/HOLD/SELL/STRONG_SELL]
 CONFIDENCE: [0-100 숫자만]
-REASONING: [2-3문장으로 핵심 투자 의견]
+REASONING: [2-3문장, 기술적 근거 포함]
 
 KEY_POINTS:
-- [강점 1]
-- [강점 2]
-- [강점 3]
+- [강점 1: 기술적 지표 활용]
+- [강점 2: 시장 심리 기반]
+- [강점 3: 리스크 고려]
 
 RISKS:
-- [리스크 1]
-- [리스크 2]
-- [리스크 3]
+- [리스크 1: 구체적 위험 요소]
+- [리스크 2: 시장 변수]
+- [리스크 3: 규제/외부 요인]
 
-TARGET_PRICE: [숫자만, 없으면 NULL]
+TARGET_PRICE: [숫자만, 저항선 또는 다음 기술적 레벨]
 TIME_HORIZON: [단기(1-7일)/중기(1-3개월)/장기(6개월+)]
 
 INVESTMENT_LEVELS:
-ENTRY: [현재가, 숫자만]
-TARGET1: [1차 목표가, 숫자만]
-TARGET2: [2차 목표가, 숫자만]
-TARGET3: [3차 목표가, 숫자만]
-STOPLOSS: [손절가, 숫자만]
-LEVELS_REASONING: [가격대 설정 근거, 2-3문장]
+ENTRY: [숫자만]
+TARGET1: [1차 저항선/레벨]
+TARGET2: [2차 목표가]
+TARGET3: [3차 목표가]
+STOPLOSS: [손절가, 지지선 아래]
+LEVELS_REASONING: [가격대 설정 근거, 사용된 기술적 레벨 명시]
 
-**투자 가격대 설정 가이드**:
-- 현재가: $${data.price.toFixed(6)}
-- 24시간 최고가: $${data.high24h.toFixed(6)} (현재가 대비 ${((data.high24h / data.price - 1) * 100).toFixed(1)}%)
-- 24시간 최저가: $${data.low24h.toFixed(6)} (현재가 대비 ${((data.low24h / data.price - 1) * 100).toFixed(1)}%)
-- 저항선 (Resistance): $${data.technicalIndicators.resistance?.toFixed(6) || 'N/A'}
-- 지지선 (Support): $${data.technicalIndicators.support?.toFixed(6) || 'N/A'}
-- RSI: ${data.technicalIndicators.rsi?.toFixed(1) || 'N/A'} ${data.technicalIndicators.rsi ? (data.technicalIndicators.rsi > 70 ? '(과매수)' : data.technicalIndicators.rsi < 30 ? '(과매도)' : '(중립)') : ''}
-- 추세: ${data.technicalIndicators.trend}
+---
 
-**가격대 산정 방법**:
-1. ENTRY: 현재가를 그대로 사용
-2. TARGET1: 저항선이나 24시간 최고가를 참고하여 첫 번째 돌파 목표 설정 (보수적)
-3. TARGET2: 기술적 패턴과 추세를 고려한 중기 목표 (저항선 돌파 후)
-4. TARGET3: 강세장 시나리오의 최대 목표 (ATH나 심리적 저항선 고려)
-5. STOPLOSS: 지지선이나 24시간 최저가를 참고하여 손실 제한선 설정 (지지선 하단)
+**⚠️ 필수 지침:**
+1. **기술적 지표 우선**: RSI, 지지/저항선, 거래량을 반드시 활용
+2. **구체성**: 모호한 답변 금지 (예: "좋을 것 같다" ❌, "RSI 30 이하 + 지지선 반등" ✅)
+3. **리스크**: 암호화폐 변동성과 손실 가능성 명시
+4. **한국 투자자 관점**: KRW 가격과 세금 고려
+5. **현실성**: 단순 퍼센트 계산 아닌 기술적 분석 기반 가격대
+6. **시장 맥락**: 비트코인 도미넌스, 시장 추세 고려
 
-**중요**: 
-1. 암호화폐는 매우 변동성이 크므로 신중한 의견을 제시하세요.
-2. 투자 권유가 아닌 분석 의견임을 명확히 하세요.
-3. 리스크를 반드시 강조하세요.
-4. 한국 투자자 관점에서 설명하세요.
-5. 투자 가격대는 **반드시 기술적 지표(저항선, 지지선, RSI, 24시간 고가/저가)를 분석**하여 설정하세요.
-6. 단순 퍼센트 계산이 아닌, 차트 패턴과 기술적 분석을 기반으로 현실적인 가격대를 제시하세요.
 `;
   }
 
@@ -286,7 +369,7 @@ LEVELS_REASONING: [가격대 설정 근거, 2-3문장]
   }
 
   /**
-   * 장기 투자 전망 분석
+   * 장기 투자 전망 분석 (GeeksforGeeks 기법: Emerging Cryptocurrencies + Long-term Strategy)
    */
   async analyzeLongTermOutlook(cryptoData: any): Promise<{
     potential: string;
@@ -297,89 +380,112 @@ LEVELS_REASONING: [가격대 설정 근거, 2-3문장]
     summary: string;
   }> {
     const prompt = `
-당신은 암호화폐 전문가입니다. ${cryptoData.name} (${cryptoData.symbol})에 대한 장기 투자 전망을 **구체적이고 실용적으로** 분석해주세요.
+당신은 암호화폐 시장 전문가입니다. ${cryptoData.name} (${cryptoData.symbol})에 대한 **6개월~3년 장기 투자 전망**을 구체적으로 분석하세요.
 
-# 코인 정보
-- 이름: ${cryptoData.name} (${cryptoData.symbol})
+# 💡 GeeksforGeeks 15가지 기법 적용:
+- Emerging Cryptocurrencies: 새로운 기술/기회 평가
+- DeFi Opportunities: 금융 기회 분석
+- Partnerships: 실제 협력 사례
+- Market Sentiment: 장기 시장 심리
+
+# ${cryptoData.name} (${cryptoData.symbol}) 현황
 - 현재가: $${cryptoData.price.toFixed(2)}
 - 시가총액: $${cryptoData.marketCap} (순위: ${cryptoData.rank}위)
 - 시장 점유율: ${cryptoData.dominance ? cryptoData.dominance.toFixed(2) + '%' : 'N/A'}
+- 역대최고가: $${cryptoData.ath.toFixed(2)} (ATH까지 상승여지: ${((cryptoData.ath / cryptoData.price - 1) * 100).toFixed(0)}%)
 
-# 중요 지침
-**일반적이거나 모호한 답변은 절대 금지입니다!**
+# ⚠️ 절대 금지: 모호한 답변!
 
-예를 들어:
-❌ "다양한 분야에서 활용 가능" (너무 모호함)
-✅ "엘살바도르에서 법정화폐로 사용 중이며, 2021년부터 국민들이 일상 결제에 활용"
+❌ 나쁜 예:
+- "다양한 분야에서 활용 가능" → 너무 일반적
+- "주요 파트너십이 있다" → 구체성 없음
+- "성장 가능성이 높다" → 근거 없음
 
-❌ "주요 파트너십 확인 필요" (정보 없음)
-✅ "테슬라가 2021년 15억 달러 구매, 마이크로스트래티지가 지속적으로 매입"
+✅ 좋은 예:
+- "테슬라가 2021년 15억 달러 구매, 지속 보유 중" → 구체적 사례
+- "미국 스타벅스 340점에서 결제 가능 (2023년)" → 실제 사용처
+- "이더리움 2.0으로 에너지 소비 99% 감소, 기관 진입 증가" → 기술 + 결과
 
-**반드시 다음을 포함하세요:**
+---
 
-1. **USE_CASES (활용 사례)**: 
-   - 실제 회사명, 서비스명, 국가명을 포함한 구체적 사례
-   - "어디서", "누가", "어떻게" 사용하는지 명확히
-   - 예: "미국 스타벅스에서 결제 가능", "삼성전자 블록체인 키스토어에 통합"
+# 📋 분석 항목
 
-2. **PARTNERSHIPS (파트너십)**:
-   - 실제 기업명, 기관명을 명시
-   - 협력 내용과 시기를 구체적으로
-   - 예: "2023년 마스터카드와 암호화폐 결제 연동", "JP모건 체이스 블록체인 네트워크 참여"
+## 1. 코인의 기본 가치 (POTENTIAL)
+**2-3문장으로 핵심 가치를 구체적으로:**
+- 무엇을 풀려고 하는가? (예: "비트코인은 인플레이션 방어")
+- 어디서 실제 사용되는가? (예: "엘살바도르 법정화폐")
+- 경쟁우위는 뭔가? (예: "채굴 난이도 조정으로 채산성 유지")
 
-3. **FUTURE_PROSPECTS (미래 전망)**:
-   - 진행 중인 구체적 프로젝트나 계획
-   - 기술 업그레이드, 규제 변화, 채택 증가 등 실제 근거
-   - 예: "2024년 비트코인 ETF 승인으로 기관 투자 증가 예상", "이더리움 2.0 업그레이드로 에너지 소비 99% 감소"
+예시: "비트코인은 공급 한정(2100만개)으로 인플레이션 방어 수단. 테슬라, 마이크로스트래티지 같은 기관이 장기 보유 중이며, 엘살바도르에서 법정화폐 채택."
 
-4. **LONG_TERM_RISKS (리스크)**:
-   - ${cryptoData.symbol}에 특화된 구체적 위험 요소
-   - 경쟁 코인, 기술적 한계, 규제 이슈 등
+## 2. 실제 활용 사례 (USE_CASES)
+**반드시 회사명 + 시기 + 규모 포함:**
+- 금융기관: "JP모건이 블록체인 기반 결제 시스템에 통합 (2022)"
+- 기업: "마이크로소프트 Azure에 이더리움 서비스 추가 (2023)"
+- 국가: "엘살바도르, 비트코인을 법정화폐로 채택 (2021년)"
+- 일상: "스타벅스 미국점포에서 비트코인 결제 (2022)"
 
-**코인별 실제 정보 예시:**
+## 3. 파트너십/협력 (PARTNERSHIPS)
+**기업명 + 협력 내용 + 시기:**
+- "테슬라 CEO 일론 머스크, 트위터 인수 자금을 도지코인으로 논의 (2023)"
+- "마스터카드-비자, 암호화폐 결제 게이트웨이 구축 중"
+- "라이트닝 네트워크로 비트코인 거래 속도 100배 향상"
 
-Bitcoin (BTC):
-- 사용처: 엘살바도르 법정화폐, 테슬라/마이크로스트래티지 보유
-- 파트너십: 페이팔 결제 지원, 피델리티 기관 투자 상품
-- 전망: 비트코인 ETF 승인, 반감기 이벤트
+## 4. 미래 전망 (FUTURE_PROSPECTS)
+**진행 중인 프로젝트 + 예상 시기 + 영향:**
+- 기술 업그레이드: "이더리움 Dencun 업그레이드로 거래 비용 90% 절감 예정 (2024년 초)"
+- 규제 진전: "미국 비트코인 ETF 승인으로 기관 투자 가속화 (2024년)"
+- 시장 채택: "삼성전자가 블록체인 칩 상용화, 하드웨어 지갑 수요 증가"
 
-Ethereum (ETH):
-- 사용처: NFT 마켓플레이스 오픈씨, DeFi 플랫폼 유니스왑
-- 파트너십: 마이크로소프트 Azure 블록체인, JP모건 쿼럼
-- 전망: 이더리움 2.0 완성, 레이어2 확장성 개선
+## 5. 장기 리스크 (LONG_TERM_RISKS)
+**${cryptoData.symbol} 특화 위험을 구체적으로:**
+- 기술적: "양자컴퓨터 발전 시 현재 암호화 방식 위협"
+- 경쟁: "이더리움은 솔라나, 폴리곤 같은 경쟁 체인 증가"
+- 규제: "한국 정부의 암호화폐 규제 정책 변화 위험"
+- 시장: "BTC 도미넌스 하락 시 알트코인 동반 하락"
 
-Dogecoin (DOGE):
-- 사용처: 테슬라 상품 결제, 트위터 팁 기능
-- 파트너십: 스페이스X 달 탐사 후원
-- 전망: 일론 머스크 지속 지원, 밈 문화 확산
+## 6. 한 줄 요약 (SUMMARY)
+**실제 근거 + 미래 전망을 한 문장으로:**
+- "비트코인은 기관 투자 확대와 반감기 이벤트로 2025년 상승 기대"
+- "이더리움 2.0 완성으로 기술적 우위 강화, 기관용 ETF 출시 예상"
+- "도지코인은 밈에서 실제 결제 수단으로 진화 중, 트위터 통합 기대"
 
-**형식:**
+---
 
-POTENTIAL: [이 코인의 핵심 가치를 2-3문장으로, 구체적 근거와 함께]
+**형식 (필수):**
+
+POTENTIAL: [핵심 가치, 2-3문장, 구체적 사례 포함]
 
 USE_CASES:
-- [구체적 사례 1: 회사명/서비스명 포함]
-- [구체적 사례 2: 실제 사용 예시]
-- [구체적 사례 3: 어떤 산업에서 활용]
+- [사례 1: 회사/국가명 + 시기]
+- [사례 2: 실제 사용처]
+- [사례 3: 미래 활용 예상]
 
 PARTNERSHIPS:
-- [실제 파트너 1: 기업명과 협력 내용]
-- [실제 파트너 2: 시기와 규모 포함]
-- [실제 파트너 3: 구체적 프로젝트명]
+- [파트너 1: 기업명 + 협력 내용 + 시기]
+- [파트너 2: 기관/프로토콜 파트너십]
+- [파트너 3: 생태계 통합]
 
 FUTURE_PROSPECTS:
-- [구체적 전망 1: 진행 중인 프로젝트]
-- [구체적 전망 2: 예상 시기와 영향]
-- [구체적 전망 3: 시장 변화 근거]
+- [전망 1: 기술 업그레이드/로드맵]
+- [전망 2: 규제/시장 변화]
+- [전망 3: 채택 확대/네트워크 효과]
 
 LONG_TERM_RISKS:
-- [${cryptoData.symbol} 특화 리스크 1]
-- [${cryptoData.symbol} 특화 리스크 2]
-- [${cryptoData.symbol} 특화 리스크 3]
+- [리스크 1: ${cryptoData.symbol} 특화]
+- [리스크 2: 시장/기술적]
+- [리스크 3: 규제/거시적]
 
-SUMMARY: [한 문장으로 핵심 요약, 실제 근거 포함]
+SUMMARY: [한 문장, 시간 범위 포함 (예: "2024-2025년"), 근거 포함]
 
-**50-60대가 이해하기 쉬운 용어로 작성하되, 반드시 실제 사례와 회사명을 포함하세요!**
+---
+
+**추가 가이드:**
+1. 일반인도 이해할 수 있는 용어 사용
+2. 회사명/서비스명 구체적으로 (예: "주요 거래소" ❌ → "업비트, 빗썸" ✅)
+3. 시기 명확히 (예: "최근" ❌ → "2024년 1월" ✅)
+4. 근거 기반 (예: "성장할 것 같다" ❌ → "스테이킹 보상 증가로" ✅)
+
 `;
 
     try {
@@ -388,26 +494,29 @@ SUMMARY: [한 문장으로 핵심 요약, 실제 근거 포함]
         messages: [
           {
             role: 'system',
-            content: `당신은 암호화폐 시장을 깊이 이해하는 전문 애널리스트입니다.
+            content: `당신은 암호화폐 시장을 깊이 있게 이해하는 전문 애널리스트입니다.
 
-**핵심 역량:**
-- 각 암호화폐의 실제 사용 사례와 파트너십을 정확히 파악
-- 주요 기업, 기관, 정부의 채택 사례를 추적
-- 기술 발전, 업그레이드 일정, 로드맵 숙지
-- 경쟁 구도와 시장 변화 분석
+**핵심 역할:**
+1. 각 암호화폐의 **실제** 사용 사례만 제공
+2. 검증된 파트너십과 협력만 언급
+3. 진행 중인 기술 업그레이드와 로드맵 제시
+4. 경쟁 구도와 시장 기회 분석
 
 **절대 금지:**
-- "다양한 분야에서 활용 가능" 같은 일반론
-- "주요 파트너십 확인 필요" 같은 회피
-- "성장 가능성 존재" 같은 모호한 표현
+- "좋을 것 같다", "가능성이 있다" 같은 모호한 표현
+- 근거 없는 예측
+- 일반적이고 모든 코인에 적용 가능한 답변
 
 **반드시 포함:**
-- 실제 회사명 (예: 테슬라, 마이크로소프트, 삼성전자)
-- 구체적 서비스명 (예: 페이팔 결제, 오픈씨 NFT)
-- 실제 사용 국가/지역 (예: 엘살바도르, 미국, 한국)
-- 시기와 규모 (예: 2021년 15억 달러, 2024년 ETF 승인)
+- 회사명 또는 기관명 (예: 테슬라, JP모건, 삼성전자)
+- 구체적 서비스 (예: 오픈씨 NFT, 유니스왑 DEX)
+- 국가/지역 (예: 미국, 한국, 엘살바도르)
+- 시기 (예: "2021년", "2024년 1월", "향후 6개월")
 
-일반인도 이해할 수 있게 쉬운 용어로 설명하되, 반드시 구체적이고 실용적인 정보를 제공하세요.`
+**톤:**
+- 50-60대 일반인도 이해 가능
+- 학파적이지 않고 실용적
+- 낙관적이지만 리스크 강조`
           },
           {
             role: 'user',
@@ -415,7 +524,7 @@ SUMMARY: [한 문장으로 핵심 요약, 실제 근거 포함]
           }
         ],
         temperature: 0.7,
-        max_tokens: 1500
+        max_tokens: 1800
       });
 
       const content = response.choices[0].message.content || '';
@@ -633,21 +742,89 @@ SUMMARY: [한 문장으로 핵심 요약, 실제 근거 포함]
   }
 
   /**
-   * 여러 코인 비교 분석
+   * 여러 코인 비교 분석 - GeeksforGeeks "Portfolio Diversification" 기법
    */
   async compareCoins(coins: any[]): Promise<string> {
     const prompt = `
-다음 암호화폐들을 비교 분석해주세요:
+다음 암호화폐들을 체계적으로 비교 분석해주세요. GeeksforGeeks "Portfolio Diversification" 기법을 활용하세요.
+
+# 비교 대상 코인들
 
 ${coins.map((coin, idx) => `
 ${idx + 1}. ${coin.name} (${coin.symbol})
-   - 현재가: $${coin.price}
-   - 24시간 변동: ${coin.change24h}%
+   - 현재가: $${coin.price.toFixed(6)}
    - 시가총액: $${coin.marketCap}
+   - 순위: ${coin.rank}위
+   - 24시간 변동: ${coin.change24h.toFixed(2)}%
+   - 7일 변동: ${coin.change7d.toFixed(2)}%
+   - 30일 변동: ${coin.change30d.toFixed(2)}%
+   - RSI: ${coin.technicalIndicators?.rsi?.toFixed(1) || 'N/A'}
+   - 추세: ${coin.technicalIndicators?.trend || 'N/A'}
+   - 거래량: $${coin.volume24h}
 `).join('\n')}
 
-투자자가 알아야 할 핵심 비교 포인트를 3-5개 문장으로 요약해주세요.
-어떤 코인이 어떤 상황에 적합한지 설명해주세요.
+---
+
+**분석 항목 (필수):**
+
+1. **가격 변동성 비교**
+   - 단기(24시간) vs 중기(7일) vs 장기(30일) 변동성
+   - 어느 코인이 안정적이고 어느 코인이 변동성이 큰가?
+   - 예: "BTC는 ±2% 보수적, DOGE는 ±8% 공격적"
+
+2. **기술적 강도 분석**
+   - RSI 상태: 과매수/과매도/중립
+   - 추세 강도: 강한 상승/하락/횡보
+   - 예: "ETH는 RSI 45로 중립, 상승 추세 시작 / BTC는 RSI 72로 과매수, 조정 위험"
+
+3. **시장 지위 비교**
+   - 시가총액 순위 (시장 인정도)
+   - 거래량 (유동성)
+   - 시장 영향력
+
+4. **투자 특성 분류**
+   - 안전 자산: BTC 같은 메이저 코인
+   - 성장형: 중소형 코인
+   - 고위험: 변동성 높은 알트코인
+   - 포트폴리오 다각화 전략
+
+5. **투자 상황별 추천**
+   - 보수 투자자: 어느 코인?
+   - 공격 투자자: 어느 코인?
+   - 분산 투자: 어떤 비율?
+
+---
+
+**답변 형식:**
+
+📊 **가격 변동성 분석**
+[각 코인의 변동성 특성과 비교 분석]
+
+📈 **기술적 강도 비교**
+[RSI, 추세, 거래량 기반 분석]
+
+💰 **시장 지위**
+[시가총액, 유동성, 시장 영향력 비교]
+
+🎯 **투자 성향별 추천**
+- 보수 투자자: [코인 추천 + 이유]
+- 중기 투자자: [코인 추천 + 이유]  
+- 공격 투자자: [코인 추천 + 이유]
+
+⚖️ **포트폴리오 다각화 전략**
+[어떤 비율로 조합하면 좋을지 제안]
+
+⚠️ **리스크 경고**
+[각 코인별 주의할 점]
+
+---
+
+**톤:**
+- 명확하고 구체적 (모호한 표현 금지)
+- 초보자도 이해 가능
+- 숫자와 근거 포함 (예: "RSI 70 이상으로 과매수" ✅, "좋을 것 같다" ❌)
+- 리스크 강조
+
 `;
 
     try {
@@ -656,7 +833,25 @@ ${idx + 1}. ${coin.name} (${coin.symbol})
         messages: [
           {
             role: 'system',
-            content: '암호화폐 비교 분석 전문가입니다. 간결하고 명확하게 비교합니다.'
+            content: `당신은 암호화폐 포트폴리오 최적화 전문가입니다.
+
+**역할:**
+- 여러 코인의 특성을 객관적으로 비교
+- 투자 성향별 추천 (보수/중기/공격)
+- 리스크와 리워드를 균형 있게 분석
+- 다각화 전략 제시
+
+**분석 원칙:**
+1. 기술적 지표 중심 (RSI, 추세, 거래량)
+2. 시가총액과 유동성 고려
+3. 변동성 프로파일 명시
+4. 투자자 성향별 맞춤 추천
+5. 리스크 명확히 강조
+
+**절대 금지:**
+- 특정 코인을 무조건 추천
+- 미래를 장담하는 표현
+- 기술적 근거 없는 의견`
           },
           {
             role: 'user',
@@ -664,7 +859,7 @@ ${idx + 1}. ${coin.name} (${coin.symbol})
           }
         ],
         temperature: 0.7,
-        max_tokens: 800
+        max_tokens: 1200
       });
 
       return response.choices[0].message.content || '비교 분석을 수행할 수 없습니다.';
@@ -675,7 +870,7 @@ ${idx + 1}. ${coin.name} (${coin.symbol})
   }
 
   /**
-   * 오늘의 코인 추천 (재미용!)
+   * 오늘의 코인 추천 (재미용!) - GeeksforGeeks "Market Sentiment" 기법
    * ⚠️ 재미로만 보세요! 투자 권유 아님!
    */
   async getTodayRecommendations(coins: any[]): Promise<{
@@ -686,26 +881,73 @@ ${idx + 1}. ${coin.name} (${coin.symbol})
     disclaimer: string;
   }> {
     const prompt = `
-다음 암호화폐 중에서 오늘의 추천을 해주세요 (재미용!):
+당신은 암호화폐 시장 심리 분석가입니다. GeeksforGeeks 기법 중 "Market Sentiment"를 활용하여 오늘의 추천을 제시하세요.
+
+**오늘의 추천 분류 (재미용!):**
+
+# 🔥 HOT_PICK: 단기 강세 신호
+- 기준: 
+  * RSI 50-70 (상승 모멘텀 강함)
+  * 24시간 변동 +3% 이상
+  * 거래량 증가
+- 예: 기술적 강세이며 단기 상승 기대
+
+# ⭐ RISING_STAR: 중기 상승 잠재력
+- 기준:
+  * 7일 변동 +5% 이상
+  * RSI 30-60 (충분한 상승 여지)
+  * 거래량 중간 이상
+- 예: 추세 전환 초기, 중기 수익 기대
+
+# 🛡️ SAFE_HAVEN: 상대적 안정성
+- 기준:
+  * 변동성 낮음 (시가총액 상위권)
+  * RSI 40-60 (중립)
+  * 거래량 풍부
+- 예: 포트폴리오 안정화용
+
+---
+
+# 분석 대상 코인들
 
 ${coins.map((coin, idx) => `
 ${idx + 1}. ${coin.name} (${coin.symbol})
-   - 현재가: $${coin.price.toFixed(6)}
-   - 24시간: ${coin.change24h.toFixed(2)}%
-   - 7일: ${coin.change7d.toFixed(2)}%
-   - RSI: ${coin.technicalIndicators?.rsi?.toFixed(1) || 'N/A'}
-   - 추세: ${coin.technicalIndicators?.trend || 'N/A'}
+   현재가: $${coin.price.toFixed(6)}
+   24시간: ${coin.change24h.toFixed(2)}% | 7일: ${coin.change7d.toFixed(2)}%
+   RSI: ${coin.technicalIndicators?.rsi?.toFixed(1) || 'N/A'}
+   추세: ${coin.technicalIndicators?.trend || 'N/A'}
+   거래량: $${coin.volume24h}
 `).join('\n')}
 
-다음 형식으로 3가지 추천을 해주세요:
+---
 
-HOT_PICK: [심볼] - [한 줄 이유]
-RISING_STAR: [심볼] - [한 줄 이유]
-SAFE_HAVEN: [심볼] - [한 줄 이유]
+**분석 형식:**
 
-REASONING: [전체적인 시장 상황과 추천 이유를 2-3문장으로]
+HOT_PICK: [BTC/ETH/DOGE 등 심볼]
+- 이유: [기술적 강점 2-3개 (RSI, 변동률, 거래량)]
+- 기대 수익: [±몇 %]
+- 신뢰도: [높음/중간/낮음]
 
-**중요**: 이건 재미로 보는 추천이에요! 실제 투자는 본인 판단!
+RISING_STAR: [심볼]
+- 이유: [중기 상승 근거]
+- 기대 기간: [며칠]
+- 신뢰도: [높음/중간/낮음]
+
+SAFE_HAVEN: [심볼]
+- 이유: [안정성 근거]
+- 포트폴리오 역할: [안정화/분산]
+- 신뢰도: [높음/중간/낮음]
+
+REASONING: [오늘 시장 전반의 심리와 추천 이유를 3-4문장으로]
+
+---
+
+**⚠️ 중요 주의:**
+1. 이건 재미용 추천 (투자 권유 아님)
+2. 기술적 지표 기반이지만 변할 수 있음
+3. 암호화폐는 예측 불가능
+4. 리스크 명시 필수
+
 `;
 
     try {
@@ -714,7 +956,25 @@ REASONING: [전체적인 시장 상황과 추천 이유를 2-3문장으로]
         messages: [
           {
             role: 'system',
-            content: '암호화폐 트렌드 분석가입니다. 재미있고 가벼운 톤으로 추천합니다. 하지만 리스크는 명확히!'
+            content: `당신은 암호화폐 시장 심리 분석가입니다.
+
+**역할:**
+- 현재 시장 감정(공포/탐욕) 파악
+- 기술적으로 강세/약세 코인 식별
+- 투자자 성향별 추천 제시
+- 재미있지만 위험성도 명확히 전달
+
+**분석 기준:**
+1. RSI로 과매수/과매도 판별
+2. 24시간 거래량 변화 (관심도)
+3. 7일 추세 (중기 모멘텀)
+4. 시가총액 순위 (안정성)
+
+**톤:**
+- 흥미롭지만 신중함
+- 기술적 근거 포함
+- 리스크 명확히 강조
+- 재미와 책임 사이 균형`
           },
           {
             role: 'user',
@@ -722,7 +982,7 @@ REASONING: [전체적인 시장 상황과 추천 이유를 2-3문장으로]
           }
         ],
         temperature: 0.8,
-        max_tokens: 600
+        max_tokens: 800
       });
 
       const content = response.choices[0].message.content || '';
@@ -746,7 +1006,7 @@ REASONING: [전체적인 시장 상황과 추천 이유를 2-3문장으로]
           safeHaven = coins.find(c => c.symbol === symbol);
         } else if (line.includes('REASONING:')) {
           reasoning = line.replace('REASONING:', '').trim();
-        } else if (reasoning && line.trim()) {
+        } else if (reasoning && line.trim() && !line.includes(':')) {
           reasoning += ' ' + line.trim();
         }
       }
@@ -755,8 +1015,8 @@ REASONING: [전체적인 시장 상황과 추천 이유를 2-3문장으로]
         hotPick: hotPick || coins[0],
         risingStar: risingStar || coins[1],
         safeHaven: safeHaven || coins[2],
-        reasoning: reasoning || '오늘의 시장 상황을 고려한 추천입니다.',
-        disclaimer: '⚠️ 이 추천은 재미로만 보세요! 암호화폐는 변동성이 매우 크며, 투자 손실 가능성이 있습니다. 투자는 본인 판단과 책임 하에!'
+        reasoning: reasoning || '오늘의 시장 심리를 고려한 추천입니다.',
+        disclaimer: '⚠️ 이 추천은 재미용입니다! 실제 투자는 본인 판단. 암호화폐는 매우 위험하며 손실 가능성이 높습니다.'
       };
     } catch (error: any) {
       console.error('추천 생성 실패:', error.message);
@@ -766,13 +1026,13 @@ REASONING: [전체적인 시장 상황과 추천 이유를 2-3문장으로]
         risingStar: coins[1],
         safeHaven: coins[2],
         reasoning: '시장 데이터를 분석한 추천입니다.',
-        disclaimer: '⚠️ 이 추천은 재미로만 보세요! 투자는 본인 책임!'
+        disclaimer: '⚠️ 이 추천은 재미용입니다! 투자는 본인 책임하에!'
       };
     }
   }
 
   /**
-   * 시세 예측 (1일/7일/30일)
+   * 시세 예측 (1일/7일/30일) - GeeksforGeeks "Price Predictions" 기법
    * ⚠️ 재미용! 정확하지 않을 수 있음!
    */
   async predictPrice(cryptoData: any): Promise<{
@@ -782,24 +1042,65 @@ REASONING: [전체적인 시장 상황과 추천 이유를 2-3문장으로]
     reasoning: string;
     disclaimer: string;
   }> {
+    // 기술적 분석 기반 레벨 계산
+    const support = cryptoData.technicalIndicators.support || cryptoData.low24h;
+    const resistance = cryptoData.technicalIndicators.resistance || cryptoData.high24h;
+    const middle = (support + resistance) / 2;
+    const range = resistance - support;
+    
     const prompt = `
-다음 암호화폐의 미래 시세를 예측해주세요 (재미용!):
+당신은 암호화폐 가격 예측 전문가입니다. GeeksforGeeks 기법 중 "Price Predictions"를 활용하여 분석하세요.
 
-# ${cryptoData.name} (${cryptoData.symbol})
+# ${cryptoData.name} (${cryptoData.symbol}) 기술적 분석 자료
+
+## 현재 가격 레벨
 - 현재가: $${cryptoData.price.toFixed(6)}
+- 저항선: $${resistance?.toFixed(6)} (매도 압력 지점)
+- 중간값: $${middle?.toFixed(6)}
+- 지지선: $${support?.toFixed(6)} (매수 지점)
+- 범위폭: $${range?.toFixed(6)} (일중 변동성)
+
+## 단기 변동 (24시간)
 - 24시간 변동: ${cryptoData.change24h.toFixed(2)}%
+- 최고: $${cryptoData.high24h.toFixed(6)}
+- 최저: $${cryptoData.low24h.toFixed(6)}
+
+## 중기 추세 (7일/30일)
 - 7일 변동: ${cryptoData.change7d.toFixed(2)}%
 - 30일 변동: ${cryptoData.change30d.toFixed(2)}%
-- RSI: ${cryptoData.technicalIndicators.rsi?.toFixed(1) || 'N/A'}
 - 추세: ${cryptoData.technicalIndicators.trend}
-- 지지선: $${cryptoData.technicalIndicators.support?.toFixed(6) || 'N/A'}
-- 저항선: $${cryptoData.technicalIndicators.resistance?.toFixed(6) || 'N/A'}
+- RSI: ${cryptoData.technicalIndicators.rsi?.toFixed(1) || 'N/A'} ${cryptoData.technicalIndicators.rsi ? `(${cryptoData.technicalIndicators.rsi > 70 ? '과매수' : cryptoData.technicalIndicators.rsi < 30 ? '과매도' : '중립'})` : ''}
+
+## 거시 지표
 - 공포-탐욕: ${cryptoData.fearGreedIndex || 'N/A'}
+- 24시간 거래량: $${cryptoData.volume24h}
+- 시가총액 순위: ${cryptoData.rank}위
 
-현재 추세와 기술적 지표를 고려하여 다음 형식으로 예측해주세요:
+---
 
-DAY1_PRICE: [숫자만]
-DAY1_CHANGE: [+/-숫자%]
+**예측 기법 (GeeksforGeeks):**
+1. **기술적 지표 활용**: RSI, 이동평균, 저항/지지선
+2. **시장 심리**: 거래량, 공포-탐욕 지수
+3. **역사적 패턴**: 최근 고저가, 일중 변동성
+4. **거시 요소**: 도미넌스, 시장 추세
+
+**예측 가이드:**
+- 1일: 저항선 근처 또는 지지선 근처 (변동성이 높으므로 ±5% 범위)
+- 7일: 추세 기반 예측 (7일 변동 추세 반영, ±10-15%)
+- 30일: 중기 기술적 레벨 (ATH 또는 심리적 저항선 고려, ±20-30%)
+
+**현실성 체크:**
+- 과매수(RSI>70) 상태면 조정 가능성 높음
+- 과매도(RSI<30) 상태면 반등 가능성 높음
+- 저항선 돌파 시 다음 저항선까지 상승 기대
+- 지지선 하단 돌파 시 다음 지지선까지 하락 위험
+
+---
+
+**형식 (필수):**
+
+DAY1_PRICE: [숫자만, $로 시작하지 않음]
+DAY1_CHANGE: [+/-숫자% 형식]
 DAY1_CONFIDENCE: [낮음/중간/높음]
 
 DAY7_PRICE: [숫자만]
@@ -810,12 +1111,16 @@ DAY30_PRICE: [숫자만]
 DAY30_CHANGE: [+/-숫자%]
 DAY30_CONFIDENCE: [낮음/중간/높음]
 
-REASONING: [예측 근거를 2-3문장으로]
+REASONING: [예측 근거를 3-4문장으로 구체적으로]
+- 1일/7일/30일 각각의 기술적 근거
+- RSI/추세/저항선 활용
+- 신뢰도 이유
 
-**중요**: 
-1. 현실적인 범위 내에서 예측
-2. 변동성을 고려한 보수적 예측
-3. 이건 AI 예측일 뿐, 맞지 않을 수 있어요!
+**중요:**
+1. 이건 **기술적 분석 기반 추정**일 뿐 확실하지 않음
+2. 암호화폐는 예측이 매우 어렵고 변동성이 극심
+3. 투자 판단 기준이 아닌 분석 참고용
+4. 시장 뉴스, 대외 이슈로 언제든 변할 수 있음
 `;
 
     try {

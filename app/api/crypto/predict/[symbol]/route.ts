@@ -12,6 +12,41 @@ import { CacheService } from '@/lib/cache-service';
 
 export const maxDuration = 30;
 
+/**
+ * 인피닛(IN) 코인 모의 데이터 생성
+ */
+function createInfinitMockData(): any {
+  const basePrice = 0.8;
+  return {
+    id: 'infinit',
+    symbol: 'IN',
+    name: '인피닛',
+    price: basePrice,
+    priceKRW: basePrice * 1350,
+    marketCap: '$150,000,000',
+    rank: 250,
+    volume24h: '$5,000,000',
+    high24h: basePrice * 1.05,
+    low24h: basePrice * 0.95,
+    change24h: (Math.random() * 8 - 4),
+    change7d: (Math.random() * 20 - 10),
+    change30d: (Math.random() * 40 - 20),
+    circulatingSupply: '100,000,000 IN',
+    totalSupply: '150,000,000 IN',
+    maxSupply: null,
+    ath: 2.5,
+    athChange: -68,
+    athDate: '2021-11-15',
+    technicalIndicators: {
+      rsi: 45,
+      trend: 'NEUTRAL',
+      support: basePrice * 0.92,
+      resistance: basePrice * 1.08,
+    },
+    isPromptEngineeringMode: true,
+  };
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { symbol: string } }
@@ -41,9 +76,16 @@ export async function GET(
     const aiService = new CryptoAIService();
 
     // 코인 데이터 가져오기
-    const cryptoData = await cryptoService.getCryptoData(symbol);
+    let cryptoData;
     
-    // 공포-탐욕 지수
+    if (symbol === 'IN') {
+      console.log(`📍 인피닛(IN) 가격 예측 - 프롬프트 엔지니어링 모드`);
+      cryptoData = createInfinitMockData();
+    } else {
+      cryptoData = await cryptoService.getCryptoData(symbol);
+    }
+    
+    // 공포-탐욕 지수 (IN 제외)
     if (symbol === 'BTC') {
       const fearGreedIndex = await cryptoService.getFearGreedIndex();
       cryptoData.fearGreedIndex = fearGreedIndex;

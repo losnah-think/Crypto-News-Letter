@@ -10,6 +10,46 @@ import { CacheService } from '@/lib/cache-service';
 
 export const maxDuration = 30;
 
+/**
+ * 인피닛(IN) 코인 모의 데이터 생성
+ * API에서 데이터를 받지 못하므로 프롬프트 엔지니어링 모드로 작동
+ */
+function createInfinitMockData(): any {
+  const basePrice = 0.8; // 예상 가격
+  return {
+    id: 'infinit',
+    symbol: 'IN',
+    name: '인피닛',
+    price: basePrice,
+    priceKRW: basePrice * 1350,
+    marketCap: '$150,000,000',
+    marketCapKRW: '₩202,500,000,000',
+    rank: 250,
+    volume24h: '$5,000,000',
+    volume24hKRW: '₩6,750,000,000',
+    high24h: basePrice * 1.05,
+    low24h: basePrice * 0.95,
+    change24h: (Math.random() * 8 - 4),
+    change7d: (Math.random() * 20 - 10),
+    change30d: (Math.random() * 40 - 20),
+    circulatingSupply: '100,000,000 IN',
+    totalSupply: '150,000,000 IN',
+    maxSupply: null,
+    ath: 2.5,
+    athChange: -68,
+    athDate: '2021-11-15',
+    dominance: null,
+    technicalIndicators: {
+      rsi: 45,
+      trend: 'NEUTRAL',
+      support: basePrice * 0.92,
+      resistance: basePrice * 1.08,
+    },
+    isPromptEngineeringMode: true,
+    note: '인피닛은 API 데이터가 제한적이므로 프롬프트 엔지니어링 기반 분석만 제공됩니다.',
+  };
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { symbol: string } }
@@ -35,14 +75,26 @@ export async function GET(
     console.log(`❌ 캐시 미스: crypto:${symbol} - 새로운 분석 시작`);
 
     // 1. 암호화폐 데이터 가져오기
-    const cryptoService = new CryptoDataService();
-    const cryptoData = await cryptoService.getCryptoData(symbol);
+    let cryptoData;
+    
+    if (symbol === 'IN') {
+      console.log(`📍 인피닛(IN) - 프롬프트 엔지니어링 모드 활성화`);
+      // API 데이터 없이 모의 데이터로 프롬프트 엔지니어링 실행
+      cryptoData = createInfinitMockData();
+    } else {
+      const cryptoService = new CryptoDataService();
+      cryptoData = await cryptoService.getCryptoData(symbol);
+      console.log(`📊 ${symbol} 데이터 조회 완료`);
+    }
 
-    console.log(`📊 ${symbol} 데이터 조회 완료`);
-
-    // 2. 공포-탐욕 지수 가져오기
-    const fearGreedIndex = await cryptoService.getFearGreedIndex();
-    cryptoData.fearGreedIndex = fearGreedIndex;
+    // 2. 공포-탐욕 지수 가져오기 (IN은 제외)
+    if (symbol !== 'IN') {
+      const cryptoService = new CryptoDataService();
+      const fearGreedIndex = await cryptoService.getFearGreedIndex();
+      cryptoData.fearGreedIndex = fearGreedIndex;
+    } else {
+      cryptoData.fearGreedIndex = null;
+    }
 
     // 3. AI 분석
     const aiService = new CryptoAIService();

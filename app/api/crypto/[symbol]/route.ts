@@ -79,16 +79,25 @@ export async function GET(
     
     if (symbol === 'IN') {
       console.log(`📍 인피닛(IN) - 프롬프트 엔지니어링 모드 활성화`);
-      // API 데이터 없이 모의 데이터로 프롬프트 엔지니어링 실행
       cryptoData = createInfinitMockData();
+      cryptoData.isPromptEngineeringMode = true;
     } else {
       const cryptoService = new CryptoDataService();
-      cryptoData = await cryptoService.getCryptoData(symbol);
-      console.log(`📊 ${symbol} 데이터 조회 완료`);
+      try {
+        cryptoData = await cryptoService.getCryptoData(symbol);
+        if (cryptoData.isApiFailure) {
+          console.log(`⚠️ API 실패 Fallback 모드: ${symbol}`);
+        } else {
+          console.log(`📊 ${symbol} 데이터 조회 완료`);
+        }
+      } catch (error: any) {
+        console.error(`❌ 데이터 조회 완전 실패: ${error.message}`);
+        throw error;
+      }
     }
 
-    // 2. 공포-탐욕 지수 가져오기 (IN은 제외)
-    if (symbol !== 'IN') {
+    // 2. 공포-탐욕 지수 가져오기 (IN과 API 실패 모드는 제외)
+    if (symbol !== 'IN' && !cryptoData.isApiFailure) {
       const cryptoService = new CryptoDataService();
       const fearGreedIndex = await cryptoService.getFearGreedIndex();
       cryptoData.fearGreedIndex = fearGreedIndex;
@@ -134,13 +143,46 @@ export async function GET(
 
   } catch (error: any) {
     console.error(`❌ 암호화폐 분석 실패 (${symbol}):`, error.message);
-    return NextResponse.json(
-      { 
-        error: '암호화폐 분석 실패',
-        message: error.message,
-        symbol 
-      },
-      { status: 500 }
-    );
+    
+    // 마지막 시도: 모의 데이터로라도 분석 제공
+    try {
+      console.log(`🆘 마지막 시도: ${symbol} 모의 데이터로 프롬프트 엔지니어링 분석 수행`);
+      
+      const fallbackData = createInfinitMockData();
+      fallbackData.symbol = symbol;
+      fallbackData.isApiFailure = true;
+      fallbackData.apiFailureNote = `API 오류로 인해 프롬프트 엔지니어링 기반 분석만 제공됩니다.`;
+      
+      const aiService = new CryptoAIService();
+      const recommendation = await aiService.analyzeCrypto(fallbackData);
+      
+      const longTermOutlook = await aiService.analyzeLongTermOutlook(fallbackData);
+      
+      const emergencyResult = {
+        ...fallbackData,
+        recommendation: {
+          ...recommendation,
+          longTermOutlook
+        },
+        generatedAt: new Date().toISOString(),
+        fromCache: false,
+        isEmergencyMode: true,
+        emergencyNote: '⚠️ API 오류: 프롬프트 엔지니어링 기반 분석만 제공됩니다. 정확도가 낮을 수 있습니다.'
+      };
+      
+      return NextResponse.json(emergencyResult);
+    } catch (emergencyError: any) {
+      console.error(`🆘 긴급 모드도 실패:`, emergencyError.message);
+      
+      return NextResponse.json(
+        { 
+          error: '암호화폐 분석 불가',
+          message: `죄송합니다. 지금은 분석을 제공할 수 없습니다. 잠시 후 다시 시도해주세요.`,
+          symbol,
+          details: error.message
+        },
+        { status: 503 }
+      );
+    }
   }
 }

@@ -65,6 +65,9 @@ interface CryptoAnalysis {
     support: number | null;
     resistance: number | null;
   };
+  // Fallback 모드 플래그
+  isApiFailure?: boolean;
+  apiFailureNote?: string;
 }
 
 export class CryptoDataService {
@@ -96,6 +99,159 @@ export class CryptoDataService {
   };
 
   /**
+   * 코인별 Fallback 모의 데이터
+   * API 실패 시 프롬프트 엔지니어링 모드로 작동
+   */
+  private getFallbackMockData(symbol: string): Partial<CryptoAnalysis> {
+    const mockDataMap: { [key: string]: Partial<CryptoAnalysis> } = {
+      'BTC': {
+        symbol: 'BTC',
+        name: '비트코인',
+        price: 42000,
+        priceKRW: 56700000,
+        marketCap: '820B',
+        marketCapKRW: '₩1,107T',
+        rank: 1,
+        volume24h: '28B',
+        volume24hKRW: '₩37.8T',
+        high24h: 42500,
+        low24h: 41500,
+        change24h: 1.5,
+        change7d: 3.2,
+        change30d: 8.5,
+        circulatingSupply: '21.5M BTC',
+        totalSupply: '21.5M BTC',
+        maxSupply: '21M BTC',
+        ath: 69000,
+        athChange: -39,
+        athDate: '2021-11-08',
+        dominance: 48.5,
+        technicalIndicators: {
+          rsi: 55,
+          trend: 'BULLISH',
+          support: 41500,
+          resistance: 43500,
+        },
+      },
+      'ETH': {
+        symbol: 'ETH',
+        name: '이더리움',
+        price: 2500,
+        priceKRW: 3375000,
+        marketCap: '300B',
+        marketCapKRW: '₩405T',
+        rank: 2,
+        volume24h: '15B',
+        volume24hKRW: '₩20.25T',
+        high24h: 2550,
+        low24h: 2450,
+        change24h: 2.1,
+        change7d: 5.3,
+        change30d: 12.5,
+        circulatingSupply: '120M ETH',
+        totalSupply: '120M ETH',
+        maxSupply: null,
+        ath: 4900,
+        athChange: -49,
+        athDate: '2021-11-16',
+        technicalIndicators: {
+          rsi: 58,
+          trend: 'BULLISH',
+          support: 2450,
+          resistance: 2600,
+        },
+      },
+      'DOGE': {
+        symbol: 'DOGE',
+        name: '도지코인',
+        price: 0.25,
+        priceKRW: 337.5,
+        marketCap: '35B',
+        marketCapKRW: '₩47.25T',
+        rank: 10,
+        volume24h: '2.5B',
+        volume24hKRW: '₩3.375T',
+        high24h: 0.26,
+        low24h: 0.24,
+        change24h: 3.5,
+        change7d: 8.2,
+        change30d: 15.5,
+        circulatingSupply: '140B DOGE',
+        totalSupply: '140B DOGE',
+        maxSupply: null,
+        ath: 0.73,
+        athChange: -66,
+        athDate: '2021-05-08',
+        technicalIndicators: {
+          rsi: 62,
+          trend: 'BULLISH',
+          support: 0.24,
+          resistance: 0.27,
+        },
+      },
+      'IN': {
+        symbol: 'IN',
+        name: '인피닛',
+        price: 0.8,
+        priceKRW: 1080,
+        marketCap: '80M',
+        marketCapKRW: '₩108B',
+        rank: 250,
+        volume24h: '5M',
+        volume24hKRW: '₩6.75B',
+        high24h: 0.84,
+        low24h: 0.76,
+        change24h: 2.5,
+        change7d: 5.5,
+        change30d: 10.5,
+        circulatingSupply: '100M IN',
+        totalSupply: '150M IN',
+        maxSupply: null,
+        ath: 2.5,
+        athChange: -68,
+        athDate: '2021-11-15',
+        technicalIndicators: {
+          rsi: 45,
+          trend: 'NEUTRAL',
+          support: 0.76,
+          resistance: 0.88,
+        },
+      },
+    };
+
+    const defaultMock: Partial<CryptoAnalysis> = {
+      symbol: symbol.toUpperCase(),
+      name: symbol,
+      price: 100,
+      priceKRW: 135000,
+      marketCap: '10B',
+      marketCapKRW: '₩13.5T',
+      rank: 100,
+      volume24h: '500M',
+      volume24hKRW: '₩675B',
+      high24h: 105,
+      low24h: 95,
+      change24h: Math.random() * 10 - 5,
+      change7d: Math.random() * 20 - 10,
+      change30d: Math.random() * 40 - 20,
+      circulatingSupply: '1B ' + symbol,
+      totalSupply: '2B ' + symbol,
+      maxSupply: null,
+      ath: 500,
+      athChange: -80,
+      athDate: '2021-01-01',
+      technicalIndicators: {
+        rsi: 50,
+        trend: 'NEUTRAL',
+        support: 95,
+        resistance: 105,
+      },
+    };
+
+    return mockDataMap[symbol.toUpperCase()] || defaultMock;
+  }
+
+  /**
    * 환율 가져오기 (USD to KRW)
    */
   private async getExchangeRate(): Promise<number> {
@@ -115,6 +271,7 @@ export class CryptoDataService {
 
   /**
    * 암호화폐 상세 데이터 가져오기
+   * API 실패 시 Fallback 모의 데이터 사용 (프롬프트 엔지니어링 모드)
    */
   async getCryptoData(symbol: string): Promise<CryptoAnalysis> {
     const coinId = this.symbolToId[symbol.toUpperCase()] || symbol.toLowerCase();
@@ -131,7 +288,8 @@ export class CryptoDataService {
           community_data: false,
           developer_data: false,
           sparkline: true
-        }
+        },
+        timeout: 5000 // 5초 타임아웃
       });
 
       const data = response.data;
@@ -152,6 +310,8 @@ export class CryptoDataService {
         const globalData = await this.getGlobalData();
         dominance = globalData?.bitcoin_dominance || null;
       }
+
+      console.log(`✅ API 성공: ${symbol} 데이터 조회 완료`);
 
       return {
         symbol: data.symbol.toUpperCase(),
@@ -175,12 +335,50 @@ export class CryptoDataService {
         athChange: marketData.ath_change_percentage.usd,
         athDate: new Date(marketData.ath_date.usd).toLocaleDateString('ko-KR'),
         dominance,
-        fearGreedIndex: null, // 별도 API로 가져와야 함
+        fearGreedIndex: null,
         technicalIndicators
       };
     } catch (error: any) {
-      console.error(`암호화폐 데이터 조회 실패 (${symbol}):`, error.message);
-      throw new Error(`${symbol} 데이터를 가져올 수 없습니다.`);
+      console.error(`⚠️ API 실패 (${symbol}): ${error.message}`);
+      console.log(`📍 프롬프트 엔지니어링 모드 활성화: ${symbol}`);
+      
+      // API 실패 시 Fallback 모의 데이터 반환
+      const fallbackData = this.getFallbackMockData(symbol);
+      
+      return {
+        symbol: symbol.toUpperCase(),
+        name: symbol,
+        price: 100,
+        priceKRW: 135000,
+        marketCap: '10B',
+        marketCapKRW: '₩13.5T',
+        rank: 100,
+        volume24h: '500M',
+        volume24hKRW: '₩675B',
+        high24h: 105,
+        low24h: 95,
+        change24h: 0,
+        change7d: 0,
+        change30d: 0,
+        circulatingSupply: '1B',
+        totalSupply: '2B',
+        maxSupply: null,
+        ath: 500,
+        athChange: -80,
+        athDate: '2021-01-01',
+        dominance: null,
+        fearGreedIndex: null,
+        technicalIndicators: {
+          rsi: 50,
+          trend: 'NEUTRAL',
+          support: 95,
+          resistance: 105,
+        },
+        // Fallback 플래그 추가
+        ...(fallbackData as any),
+        isApiFailure: true,
+        apiFailureNote: 'API 데이터를 받지 못했습니다. 프롬프트 엔지니어링 기반 분석만 제공됩니다.',
+      };
     }
   }
 
